@@ -17,7 +17,7 @@ const PreviewWrapper: StyledComponent<{}, void, HTMLDivElement> = styled.div`
   align-items: center;
   justify-content: flex-end;
   float: right;
-  margin-bottom: 6px;
+  transform: translateY(-3px);
 `;
 
 const FromWrapper: StyledComponent<{}, void, HTMLSpanElement> = styled.span`
