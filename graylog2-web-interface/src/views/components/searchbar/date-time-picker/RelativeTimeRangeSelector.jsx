@@ -51,9 +51,8 @@ const RangeWrapper: StyledComponent<{}, void, HTMLDivElement> = styled.div`
   display: grid;
   grid-template-columns: max-content repeat(5, 1fr) max-content;
   grid-template-rows: repeat(2, 1fr);
-  grid-column-gap: 0px;
-  grid-row-gap: 0px;
-  
+  grid-column-gap: 0;
+  grid-row-gap: 0;
 `;
 
 const InputWrap: StyledComponent<{}, void, HTMLDivElement> = styled.div`
