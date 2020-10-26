@@ -16,6 +16,7 @@ import type { WizardSubmitPayload } from 'logic/authentication/directoryServices
 import { Row, Col, Alert } from 'components/graylog';
 import Wizard, { type Step } from 'components/common/Wizard';
 import { FetchError } from 'logic/rest/FetchProvider';
+import type { LoadResponse as LoadBackendResponse } from 'actions/authentication/AuthenticationActions';
 
 import BackendWizardContext, { type WizardStepsState, type WizardFormValues, type AuthBackendMeta } from './BackendWizardContext';
 import { FORM_VALIDATION as SERVER_CONFIG_VALIDATION, STEP_KEY as SERVER_CONFIG_KEY } from './ServerConfigStep';
@@ -70,6 +71,7 @@ const _prepareSubmitPayload = (stepsState, getUpdatedFormsValues) => (overrideFo
     systemUserDn,
     systemUserPassword,
     transportSecurity,
+    userUniqueIdAttribute,
     userFullNameAttribute,
     userNameAttribute,
     userSearchBase,
@@ -97,12 +99,13 @@ const _prepareSubmitPayload = (stepsState, getUpdatedFormsValues) => (overrideFo
       user_name_attribute: userNameAttribute,
       user_search_base: userSearchBase,
       user_search_pattern: userSearchPattern,
+      user_unique_id_attribute: userUniqueIdAttribute,
       verify_certificates: verifyCertificates,
     },
   };
 };
 
-const _getInvalidStepKeys = (formValues) => {
+const _getInvalidStepKeys = (formValues, excludedFields) => {
   const validation = { ...FORMS_VALIDATION, [GROUP_SYNC_KEY]: {} };
   const enterpriseGroupSyncPlugin = getEnterpriseGroupSyncPlugin();
   const groupSyncValidation = enterpriseGroupSyncPlugin?.validation.GroupSyncValidation;
@@ -114,7 +117,7 @@ const _getInvalidStepKeys = (formValues) => {
   const invalidStepKeys = Object.entries(validation).map(([stepKey, formValidation]) => {
     // $FlowFixMe formValidation is valid input for Object.entries
     const stepHasError = Object.entries(formValidation).some(([fieldName, fieldValidation]) => {
-      return !!validateField(fieldValidation)(formValues?.[fieldName]);
+      return !excludedFields[fieldName] && !!validateField(fieldValidation)(formValues?.[fieldName]);
     });
 
     return stepHasError ? stepKey : undefined;
@@ -136,7 +139,7 @@ const _onSubmitAll = (stepsState, setSubmitAllError, onSubmit, getUpdatedFormsVa
   setSubmitAllError(null);
 
   const payload = getSubmitPayload(formValues);
-  const _submit = () => onSubmit(payload, formValues, licenseIsValid).then(() => {
+  const _submit = () => onSubmit(payload, formValues, stepsState.authBackendMeta.serviceType, licenseIsValid).then(() => {
     history.push(Routes.SYSTEM.AUTHENTICATION.BACKENDS.OVERVIEW);
   }).catch((error) => {
     setSubmitAllError(error);
@@ -166,11 +169,12 @@ type Props = {
   authBackendMeta: AuthBackendMeta,
   initialStepKey: $PropertyType<Step, 'key'>,
   initialValues: WizardFormValues,
+  excludedFields: {[ inputName: string ]: boolean },
   help: { [inputName: string]: ?React.Node },
-  onSubmit: (WizardSubmitPayload, WizardFormValues, licenseIsValid?: boolean) => Promise<void>,
+  onSubmit: (WizardSubmitPayload, WizardFormValues, serviceType: $PropertyType<AuthBackendMeta, 'serviceType'>, licenseIsValid?: boolean) => Promise<LoadBackendResponse>,
 };
 
-const BackendWizard = ({ initialValues, initialStepKey, onSubmit, authBackendMeta, help }: Props) => {
+const BackendWizard = ({ initialValues, initialStepKey, onSubmit, authBackendMeta, help, excludedFields }: Props) => {
   const enterpriseGroupSyncPlugin = getEnterpriseGroupSyncPlugin();
   const MatchingGroupsProvider = enterpriseGroupSyncPlugin?.components.MatchingGroupsProvider;
   const [roles, setRoles] = useState<?Immutable.List<Role>>();
@@ -191,11 +195,7 @@ const BackendWizard = ({ initialValues, initialStepKey, onSubmit, authBackendMet
   useEffect(() => {
     const getUnlimited = [1, 0, ''];
 
-    AuthzRolesDomain.loadRolesPaginated(...getUnlimited).then((paginatedRoles) => {
-      if (paginatedRoles) {
-        setRoles(paginatedRoles.list);
-      }
-    });
+    AuthzRolesDomain.loadRolesPaginated(...getUnlimited).then((paginatedRoles) => setRoles(paginatedRoles.list));
   }, []);
 
   useEffect(() => {
@@ -215,7 +215,7 @@ const BackendWizard = ({ initialValues, initialStepKey, onSubmit, authBackendMet
   };
 
   const _validateSteps = (formValues: WizardFormValues): Array<string> => {
-    const invalidStepKeys = _getInvalidStepKeys(formValues);
+    const invalidStepKeys = _getInvalidStepKeys(formValues, excludedFields);
 
     if (invalidStepKeys.length >= 1) {
       setStepsState({
@@ -237,7 +237,7 @@ const BackendWizard = ({ initialValues, initialStepKey, onSubmit, authBackendMet
 
     // Only update invalid steps keys, we create them on submit all only
     if (invalidStepKeys.length >= 1) {
-      invalidStepKeys = _getInvalidStepKeys(formValues);
+      invalidStepKeys = _getInvalidStepKeys(formValues, excludedFields);
     }
 
     setStepsState({
@@ -264,6 +264,7 @@ const BackendWizard = ({ initialValues, initialStepKey, onSubmit, authBackendMet
     handleSubmitAll: _handleSubmitAll,
     invalidStepKeys: stepsState.invalidStepKeys,
     prepareSubmitPayload: _getSubmitPayload,
+    excludedFields,
     roles,
     setActiveStepKey: _setActiveStepKey,
     submitAllError: submitAllError && <SubmitAllError error={submitAllError} backendId={authBackendMeta.backendId} />,
@@ -296,6 +297,7 @@ const BackendWizard = ({ initialValues, initialStepKey, onSubmit, authBackendMet
 BackendWizard.defaultProps = {
   initialStepKey: SERVER_CONFIG_KEY,
   help: undefined,
+  excludedFields: {},
 };
 
 BackendWizard.propTypes = {
@@ -308,6 +310,7 @@ BackendWizard.propTypes = {
   help: PropTypes.object,
   initialStepKey: PropTypes.string,
   initialValues: PropTypes.object.isRequired,
+  excludedFields: PropTypes.object,
 };
 
 export default BackendWizard;
