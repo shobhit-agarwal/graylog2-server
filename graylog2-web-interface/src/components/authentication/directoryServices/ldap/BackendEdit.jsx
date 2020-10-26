@@ -28,6 +28,7 @@ export const prepareInitialValues = ({
     userNameAttribute,
     userSearchBase,
     userSearchPattern,
+    userUniqueIdAttribute,
     verifyCertificates,
   },
 }: DirectoryServiceBackend): WizardFormValues => {
@@ -41,6 +42,7 @@ export const prepareInitialValues = ({
     userNameAttribute,
     userSearchBase,
     userSearchPattern,
+    userUniqueIdAttribute,
     verifyCertificates,
   };
 };
@@ -55,14 +57,17 @@ const _optionalWizardProps = (initialStepKey: ?string) => {
   return props;
 };
 
-export const handleSubmit = (payload: WizardSubmitPayload, formValues: WizardFormValues, backendId: string, backendGroupSyncIsActive: boolean, serviceType: string, licenseIsValid: ?boolean = true) => {
+export const handleSubmit = (payload: WizardSubmitPayload, formValues: WizardFormValues, backendId: string, backendGroupSyncIsActive: boolean, serviceType: string, shouldUpdateGroupSync: ?boolean = true) => {
   const enterpriseGroupSyncPlugin = getEnterpriseGroupSyncPlugin();
+  const backendUpdateNotificationSettings = {
+    notifyOnSuccess: !formValues.synchronizeGroups,
+  };
 
-  return AuthenticationDomain.update(backendId, {
+  return AuthenticationDomain.update(backendUpdateNotificationSettings)(backendId, {
     ...payload,
     id: backendId,
   }).then((result) => {
-    if (result && enterpriseGroupSyncPlugin && licenseIsValid) {
+    if (enterpriseGroupSyncPlugin && shouldUpdateGroupSync) {
       return enterpriseGroupSyncPlugin.actions.onDirectoryServiceBackendUpdate(backendGroupSyncIsActive, formValues, backendId, serviceType);
     }
 
@@ -72,21 +77,24 @@ export const handleSubmit = (payload: WizardSubmitPayload, formValues: WizardFor
 
 const BackendEdit = ({ authenticationBackend, initialStepKey }: Props) => {
   const enterpriseGroupSyncPlugin = getEnterpriseGroupSyncPlugin();
-  const groupSyncFormHelp = enterpriseGroupSyncPlugin?.help?.ldap ?? {};
-  const help = { ...HELP, ...groupSyncFormHelp };
+  const {
+    help: groupSyncHelp = {},
+    initialValues: initialGroupSyncValues = {},
+  } = enterpriseGroupSyncPlugin?.wizardConfig?.ldap ?? {};
+  const help = { ...HELP, ...groupSyncHelp };
   let initialValues = prepareInitialValues(authenticationBackend);
 
   if (enterpriseGroupSyncPlugin) {
     const {
-      initialValues: initialGroupSyncValues,
+      formValues: groupSyncFormValues,
       finishedLoading,
-    } = enterpriseGroupSyncPlugin.hooks.useInitialGroupSyncValues(authenticationBackend.id);
+    } = enterpriseGroupSyncPlugin.hooks.useInitialGroupSyncValues(authenticationBackend.id, initialGroupSyncValues);
 
     if (!finishedLoading) {
       return <Spinner />;
     }
 
-    initialValues = { ...initialValues, ...initialGroupSyncValues };
+    initialValues = { ...initialValues, ...groupSyncFormValues };
   }
 
   const authBackendMeta = {
@@ -95,7 +103,7 @@ const BackendEdit = ({ authenticationBackend, initialStepKey }: Props) => {
     backendHasPassword: authenticationBackend.config.systemUserPassword.isSet,
     backendGroupSyncIsActive: !!initialValues.synchronizeGroups,
   };
-  const _handleSubmit = (payload, formValues, licenseIsValid) => handleSubmit(payload, formValues, authenticationBackend.id, !!initialValues.synchronizeGroups, authBackendMeta.serviceType, licenseIsValid);
+  const _handleSubmit = (payload, formValues, serviceType, shouldUpdateGroupSync) => handleSubmit(payload, formValues, authenticationBackend.id, !!initialValues.synchronizeGroups, serviceType, shouldUpdateGroupSync);
 
   return (
     <DocumentTitle title="Edit LDAP Authentication Service">

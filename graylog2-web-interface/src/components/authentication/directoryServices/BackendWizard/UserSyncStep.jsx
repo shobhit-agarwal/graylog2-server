@@ -12,8 +12,8 @@ import { Input } from 'components/bootstrap';
 
 import BackendWizardContext from './BackendWizardContext';
 
-export type StepKeyType = 'user-synchronisation';
-export const STEP_KEY: StepKeyType = 'user-synchronisation';
+export type StepKeyType = 'user-synchronization';
+export const STEP_KEY: StepKeyType = 'user-synchronization';
 export const FORM_VALIDATION = {
   defaultRoles: { required: true },
   userFullNameAttribute: { required: true },
@@ -25,6 +25,7 @@ export const FORM_VALIDATION = {
 type Props = {
   formRef: React.Ref<typeof Formik>,
   help: { [inputName: string]: ?React.Node },
+  excludedFields: { [inputName: string]: boolean },
   roles: Immutable.List<Role>,
   onSubmit: () => void,
   onSubmitAll: () => Promise<void>,
@@ -32,7 +33,7 @@ type Props = {
   validateOnMount: boolean,
 };
 
-const UserSyncStep = ({ help = {}, formRef, onSubmit, onSubmitAll, submitAllError, validateOnMount, roles }: Props) => {
+const UserSyncStep = ({ help = {}, excludedFields = {}, formRef, onSubmit, onSubmitAll, submitAllError, validateOnMount, roles }: Props) => {
   const { setStepsState, ...stepsState } = useContext(BackendWizardContext);
   const rolesOptions = roles.map((role) => ({ label: role.name, value: role.id })).toArray();
 
@@ -77,6 +78,14 @@ const UserSyncStep = ({ help = {}, formRef, onSubmit, onSubmitAll, submitAllErro
                            name="userFullNameAttribute"
                            placeholder="Full Name Attribute"
                            validate={validateField(FORM_VALIDATION.userFullNameAttribute)} />
+
+          {!excludedFields.userUniqueIdAttribute && (
+            <FormikFormGroup help={help.userUniqueIdAttribute}
+                             label="ID Attribute"
+                             name="userUniqueIdAttribute"
+                             placeholder="ID Attribute"
+                             validate={validateField(FORM_VALIDATION.userFullNameAttribute)} />
+          )}
 
           <Row>
             <Col sm={9} smOffset={3}>
@@ -127,7 +136,7 @@ const UserSyncStep = ({ help = {}, formRef, onSubmit, onSubmitAll, submitAllErro
             <Button bsStyle="primary"
                     disabled={isSubmitting}
                     type="submit">
-              Next: Group Synchronisation
+              Next: Group Synchronization
             </Button>
           </ButtonToolbar>
         </Form>

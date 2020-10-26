@@ -63,19 +63,17 @@ const UsersSelector = ({ role, onSubmit }: Props) => {
   const [options, setOptions] = useState([]);
 
   const _loadUsers = useCallback(() => {
-    const getUnlimited = [1, 0, ''];
+    const getUnlimited = { page: 1, perPage: 0, query: '' };
 
-    UsersDomain.loadUsersPaginated(...getUnlimited)
-      .then((newPaginatedUsers) => {
-        if (newPaginatedUsers) {
-          const resultUsers = newPaginatedUsers.list
-            .filter((u) => !u.roles.includes(role.name))
-            .map((u) => ({ label: u.name, value: u.name }))
-            .toArray();
+    UsersDomain.loadUsersPaginated(getUnlimited)
+      .then((paginatedUsers) => {
+        const resultUsers = paginatedUsers.list
+          .filter((u) => !u.roles.includes(role.name))
+          .map((u) => ({ label: u.name, value: u.name }))
+          .toArray();
 
-          setOptions(resultUsers);
-          setUsers(newPaginatedUsers.list);
-        }
+        setOptions(resultUsers);
+        setUsers(paginatedUsers.list);
       });
   }, [role]);
 

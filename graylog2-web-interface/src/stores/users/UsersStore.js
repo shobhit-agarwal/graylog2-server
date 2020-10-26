@@ -13,9 +13,9 @@ import UserOverview from 'logic/users/UserOverview';
 import User from 'logic/users/User';
 import UsersActions from 'actions/users/UsersActions';
 import type { ChangePasswordRequest, Token, PaginatedUsers, UserCreate, UserUpdate } from 'actions/users/UsersActions';
-import type { PaginatedResponseType } from 'stores/PaginationTypes';
+import type { PaginatedListJSON, Pagination } from 'stores/PaginationTypes';
 
-type PaginatedResponse = PaginatedResponseType & {
+export type PaginatedUsersResponse = PaginatedListJSON & {
   users: Array<UserOverviewJSON>,
   context: {
     admin_user: UserOverviewJSON,
@@ -27,7 +27,7 @@ const UsersStore: Store<{}> = singletonStore(
   () => Reflux.createStore({
     listenables: [UsersActions],
 
-    create(user: UserCreate): Promise<string[]> {
+    create(user: UserCreate): Promise<void> {
       const url = qualifyUrl(ApiRoutes.UsersApiController.create().url);
       const promise = fetch('POST', url, user);
       UsersActions.create.promise(promise);
@@ -35,7 +35,7 @@ const UsersStore: Store<{}> = singletonStore(
       return promise;
     },
 
-    load(username: string): Promise<?User> {
+    load(username: string): Promise<User> {
       const url = qualifyUrl(ApiRoutes.UsersApiController.load(encodeURIComponent(username)).url);
       const promise = fetch('GET', url).then(User.fromJSON);
 
@@ -44,7 +44,7 @@ const UsersStore: Store<{}> = singletonStore(
       return promise;
     },
 
-    update(username: string, user: UserUpdate): void {
+    update(username: string, user: UserUpdate): Promise<void> {
       const url = qualifyUrl(ApiRoutes.UsersApiController.update(encodeURIComponent(username)).url);
       const promise = fetch('PUT', url, user);
       UsersActions.update.promise(promise);
@@ -69,7 +69,7 @@ const UsersStore: Store<{}> = singletonStore(
       return promise;
     },
 
-    createToken(username: string, tokenName: string): Promise<?Token> {
+    createToken(username: string, tokenName: string): Promise<Token> {
       const url = qualifyUrl(ApiRoutes.UsersApiController.create_token(encodeURIComponent(username),
         encodeURIComponent(tokenName)).url);
       const promise = fetch('POST', url);
@@ -78,7 +78,7 @@ const UsersStore: Store<{}> = singletonStore(
       return promise;
     },
 
-    loadTokens(username: string): Promise<?Token[]> {
+    loadTokens(username: string): Promise<Token[]> {
       const url = qualifyUrl(ApiRoutes.UsersApiController.list_tokens(encodeURIComponent(username)).url);
       const promise = fetch('GET', url).then((response) => response.tokens);
       UsersActions.loadTokens.promise(promise);
@@ -86,7 +86,7 @@ const UsersStore: Store<{}> = singletonStore(
       return promise;
     },
 
-    deleteToken(username: string, tokenId: string): Promise<?string[]> {
+    deleteToken(username: string, tokenId: string): Promise<string[]> {
       const url = qualifyUrl(ApiRoutes.UsersApiController.delete_token(encodeURIComponent(username),
         encodeURIComponent(tokenId)).url, {});
       const promise = fetch('DELETE', url);
@@ -104,19 +104,19 @@ const UsersStore: Store<{}> = singletonStore(
       return promise;
     },
 
-    loadUsersPaginated(page: number, perPage: number, query: string): Promise<?PaginatedUsers> {
+    loadUsersPaginated({ page, perPage, query }: Pagination): Promise<PaginatedUsers> {
       const url = PaginationURL(ApiRoutes.UsersApiController.paginated().url, page, perPage, query);
 
       const promise = fetch('GET', qualifyUrl(url))
-        .then((response: PaginatedResponse) => ({
+        .then((response: PaginatedUsersResponse) => ({
           adminUser: response.context.admin_user ? UserOverview.fromJSON(response.context.admin_user) : undefined,
           list: Immutable.List(response.users.map((user) => UserOverview.fromJSON(user))),
           pagination: {
-            count: response.count,
-            total: response.total,
             page: response.page,
             perPage: response.per_page,
             query: response.query,
+            count: response.count,
+            total: response.total,
           },
         }));
 

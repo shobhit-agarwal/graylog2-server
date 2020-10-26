@@ -18,10 +18,10 @@ import type {
   LoadResponse,
   LoginTestPayload,
   LoginTestResult,
-  PaginatedAuthUsers,
   PaginatedBackends,
 } from 'actions/authentication/AuthenticationActions';
-import type { PaginatedResponseType } from 'stores/PaginationTypes';
+import type { PaginatedUsers } from 'actions/users/UsersActions';
+import type { PaginatedResponseType, Pagination } from 'stores/PaginationTypes';
 import type { AuthenticationBackendJSON } from 'logic/authentication/AuthenticationBackend';
 import ApiRoutes from 'routing/ApiRoutes';
 import UserOverview, { type UserOverviewJSON } from 'logic/users/UserOverview';
@@ -48,7 +48,7 @@ const AuthenticationStore: Store<{ authenticators: any }> = singletonStore(
       };
     },
 
-    create(authBackend: AuthenticationBackendCreate): Promise<?LoadResponse> {
+    create(authBackend: AuthenticationBackendCreate): Promise<LoadResponse> {
       const url = qualifyUrl(ApiRoutes.AuthenticationController.create().url);
       const promise = fetch('POST', url, authBackend).then((result) => (result ? {
         backend: AuthenticationBackend.fromJSON(result.backend),
@@ -58,7 +58,7 @@ const AuthenticationStore: Store<{ authenticators: any }> = singletonStore(
       return promise;
     },
 
-    load(backendId: string): Promise<?LoadResponse> {
+    load(backendId: string): Promise<LoadResponse> {
       const url = qualifyUrl(ApiRoutes.AuthenticationController.load(encodeURIComponent(backendId)).url);
       const promise = fetch('GET', url).then((result) => (result ? {
         backend: AuthenticationBackend.fromJSON(result.backend),
@@ -69,7 +69,7 @@ const AuthenticationStore: Store<{ authenticators: any }> = singletonStore(
       return promise;
     },
 
-    loadActive(): Promise<?LoadActiveResponse> {
+    loadActive(): Promise<LoadActiveResponse> {
       const url = qualifyUrl(ApiRoutes.AuthenticationController.loadActive().url);
       const promise = fetch('GET', url).then((result) => (result ? {
         backend: result.backend ? AuthenticationBackend.fromJSON(result.backend) : null,
@@ -81,7 +81,7 @@ const AuthenticationStore: Store<{ authenticators: any }> = singletonStore(
       return promise;
     },
 
-    update(backendId: ?$PropertyType<AuthenticationBackend, 'id'>, payload: AuthenticationBackendUpdate): Promise<?LoadResponse> {
+    update(backendId: ?$PropertyType<AuthenticationBackend, 'id'>, payload: AuthenticationBackendUpdate): Promise<LoadResponse> {
       const url = qualifyUrl(ApiRoutes.AuthenticationController.update(backendId).url);
       const promise = fetch('PUT', url, payload).then((result) => (result ? {
         backend: AuthenticationBackend.fromJSON(result.backend),
@@ -100,7 +100,7 @@ const AuthenticationStore: Store<{ authenticators: any }> = singletonStore(
       return promise;
     },
 
-    testConnection(payload: ConnectionTestPayload): ConnectionTestResult {
+    testConnection(payload: ConnectionTestPayload): Promise<ConnectionTestResult> {
       const url = qualifyUrl(ApiRoutes.AuthenticationController.testConnection().url);
       const promise = fetch('POST', url, payload);
       AuthenticationActions.testConnection.promise(promise);
@@ -108,7 +108,7 @@ const AuthenticationStore: Store<{ authenticators: any }> = singletonStore(
       return promise;
     },
 
-    testLogin(payload: LoginTestPayload): LoginTestResult {
+    testLogin(payload: LoginTestPayload): Promise<LoginTestResult> {
       const url = qualifyUrl(ApiRoutes.AuthenticationController.testLogin().url);
       const promise = fetch('POST', url, payload);
       AuthenticationActions.testLogin.promise(promise);
@@ -140,7 +140,7 @@ const AuthenticationStore: Store<{ authenticators: any }> = singletonStore(
       return promise;
     },
 
-    loadBackendsPaginated(page: number, perPage: number, query: string): Promise<?PaginatedBackends> {
+    loadBackendsPaginated({ page, perPage, query }: Pagination): Promise<PaginatedBackends> {
       const url = PaginationURL(ApiRoutes.AuthenticationController.servicesPaginated().url, page, perPage, query);
       const promise = fetch('GET', qualifyUrl(url))
         .then((response: PaginatedBackendsResponse) => ({
@@ -149,11 +149,11 @@ const AuthenticationStore: Store<{ authenticators: any }> = singletonStore(
           },
           list: Immutable.List(response.backends.map((backend) => AuthenticationBackend.fromJSON(backend))),
           pagination: {
-            count: response.count,
-            total: response.total,
             page: response.page,
             perPage: response.per_page,
             query: response.query,
+            count: response.count,
+            total: response.total,
           },
         }));
 
@@ -162,18 +162,18 @@ const AuthenticationStore: Store<{ authenticators: any }> = singletonStore(
       return promise;
     },
 
-    loadUsersPaginated(page: number, perPage: number, query: string): Promise<?PaginatedAuthUsers> {
+    loadUsersPaginated({ page, perPage, query }: Pagination): Promise<PaginatedUsers> {
       const url = PaginationURL(ApiRoutes.AuthenticationController.loadUsersPaginated().url, page, perPage, query);
 
       const promise = fetch('GET', qualifyUrl(url))
         .then((response: PaginatedUsersResponse) => ({
           list: Immutable.List(response.users.map((user) => UserOverview.fromJSON(user))),
           pagination: {
-            count: response.count,
-            total: response.total,
             page: response.page,
             perPage: response.per_page,
             query: response.query,
+            count: response.count,
+            total: response.total,
           },
         }));
 

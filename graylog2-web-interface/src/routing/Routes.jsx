@@ -22,11 +22,13 @@ const Routes = {
       LIST: '/alerts/definitions',
       CREATE: '/alerts/definitions/new',
       edit: (definitionId) => `/alerts/definitions/${definitionId}/edit`,
+      view: (definitionId) => `/alerts/definitions/${definitionId}`,
     },
     NOTIFICATIONS: {
       LIST: '/alerts/notifications',
       CREATE: '/alerts/notifications/new',
       edit: (notificationId) => `/alerts/notifications/${notificationId}/edit`,
+      show: (notificationId) => `/alerts/notifications/${notificationId}`,
     },
   },
   SOURCES: '/sources',
@@ -75,7 +77,13 @@ const Routes = {
         CREATE: '/system/authentication/services/create',
         createBackend: (name) => `/system/authentication/services/create/${name}`,
         show: (id) => `/system/authentication/services/${id}`,
-        edit: (id) => `/system/authentication/services/edit/${id}`,
+        edit: (id, initialStepKey) => {
+          const editUrl = `/system/authentication/services/edit/${id}`;
+
+          if (initialStepKey) return `${editUrl}?initialStepKey=${initialStepKey}`;
+
+          return editUrl;
+        },
       },
     },
     USERS: {

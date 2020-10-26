@@ -1,6 +1,5 @@
 import React from 'react';
 import { Redirect, Router, Route, Switch } from 'react-router-dom';
-import { PluginStore } from 'graylog-web-plugin/plugin';
 
 import App from 'routing/App';
 import AppWithoutSearchBar from 'routing/AppWithoutSearchBar';
@@ -64,6 +63,7 @@ import {
   RulesPage,
   ShowAlertPage,
   ShowContentPackPage,
+  ShowEventNotificationPage,
   ShowMessagePage,
   ShowMetricsPage,
   ShowNodePage,
@@ -88,8 +88,10 @@ import {
   UserEditPage,
   UserTokensEditPage,
   UsersOverviewPage,
+  ViewEventDefinitionPage,
 } from 'pages';
 import RouterErrorBoundary from 'components/errors/RouterErrorBoundary';
+import usePluginEntities from 'views/logic/usePluginEntities';
 
 const renderPluginRoute = ({ path, component: Component, parentComponent }) => {
   const ParentComponent = parentComponent ?? React.Fragment;
@@ -114,20 +116,20 @@ const WrappedNotFoundPage = () => (
 );
 
 const AppRouter = () => {
-  const pluginRoutes = PluginStore.exports('routes');
+  const pluginRoutes = usePluginEntities('routes');
   const pluginRoutesWithNullParent = pluginRoutes.filter((route) => (route.parentComponent === null)).map(renderPluginRoute);
   const pluginRoutesWithParent = pluginRoutes.filter((route) => route.parentComponent).map(renderPluginRoute);
   const standardPluginRoutes = pluginRoutes.filter((route) => (route.parentComponent === undefined)).map(renderPluginRoute);
 
   return (
     <Router history={history}>
-      <Switch>
-        <RouterErrorBoundary>
+      <RouterErrorBoundary>
+        <Switch>
           {pluginRoutesWithNullParent}
 
-          <App>
-            <AppWithGlobalNotifications>
-              <Route path={Routes.STARTPAGE}>
+          <Route path={Routes.STARTPAGE}>
+            <App>
+              <AppWithGlobalNotifications>
                 <Switch>
                   <Route exact path={Routes.STARTPAGE} component={StartPage} />
                   {pluginRoutesWithParent}
@@ -154,11 +156,17 @@ const AppRouter = () => {
                         <Route exact
                                path={Routes.ALERTS.DEFINITIONS.edit(':definitionId')}
                                component={EditEventDefinitionPage} />
+                        <Route exact
+                               path={Routes.ALERTS.DEFINITIONS.view(':definitionId')}
+                               component={ViewEventDefinitionPage} />
                         <Route exact path={Routes.ALERTS.NOTIFICATIONS.LIST} component={EventNotificationsPage} />
                         <Route exact path={Routes.ALERTS.NOTIFICATIONS.CREATE} component={CreateEventNotificationPage} />
                         <Route exact
                                path={Routes.ALERTS.NOTIFICATIONS.edit(':notificationId')}
                                component={EditEventNotificationPage} />
+                        <Route exact
+                               path={Routes.ALERTS.NOTIFICATIONS.show(':notificationId')}
+                               component={ShowEventNotificationPage} />
                         <Route exact
                                path={Routes.show_alert_condition(':streamId', ':conditionId')}
                                component={EditAlertConditionPage} />
@@ -281,12 +289,12 @@ const AppRouter = () => {
                   </Route>
                   <Route exact path={Routes.NOTFOUND} component={WrappedNotFoundPage} />
                 </Switch>
-              </Route>
-            </AppWithGlobalNotifications>
-            <Route exact path={Routes.NOTFOUND} component={WrappedNotFoundPage} />
-          </App>
-        </RouterErrorBoundary>
-      </Switch>
+              </AppWithGlobalNotifications>
+              <Route exact path={Routes.NOTFOUND} component={WrappedNotFoundPage} />
+            </App>
+          </Route>
+        </Switch>
+      </RouterErrorBoundary>
     </Router>
   );
 };
