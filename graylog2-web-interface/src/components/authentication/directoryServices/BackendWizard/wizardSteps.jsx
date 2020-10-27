@@ -16,7 +16,7 @@ type Props = {
     [ServerConfigKey | UserSyncKey | GroupSyncKey]: React.Ref<typeof Formik>,
   },
   excludedFields: { [inputName: string]: boolean },
-  handleSubmitAll: (licenseIsValid?: boolean) => Promise<void>,
+  handleSubmitAll: (shouldUpdateGroupSync?: boolean) => Promise<void>,
   help: { [inputName: string]: ?React.Node },
   invalidStepKeys: Array<string>,
   prepareSubmitPayload: () => WizardSubmitPayload,
@@ -58,7 +58,7 @@ const wizardSteps = ({
     title: (
       <>
         <StepTitleWarning invalidStepKeys={invalidStepKeys} stepKey={USER_SYNC_KEY} />
-        User Synchronisation
+        User Synchronization
       </>
     ),
     component: (
@@ -77,7 +77,7 @@ const wizardSteps = ({
     title: (
       <>
         <StepTitleWarning invalidStepKeys={invalidStepKeys} stepKey={GROUP_SYNC_KEY} />
-        Group Synchronisation (Opt.)
+        Group Synchronization (Opt.)
       </>
     ),
     component: (

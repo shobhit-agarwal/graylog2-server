@@ -14,14 +14,15 @@ const useActiveBackend = <T>(listenableActions: Array<ListenableAction<T>> = [])
     setLoadActiveResponse(response);
   });
 
+  useEffect(() => { _loadActive(); }, []);
+
   useEffect(() => {
-    _loadActive();
     const unlistenActions = listenableActions.map((action) => action.completed.listen(_loadActive));
 
     return () => {
       unlistenActions.forEach((unlistenAction) => unlistenAction());
     };
-  }, []);
+  }, [listenableActions]);
 
   return {
     finishedLoading,
